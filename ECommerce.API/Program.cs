@@ -6,6 +6,7 @@ using ECommerce.Application.Interfaces.Services;
 using ECommerce.Infrastructure;
 using ECommerce.Infrastructure.Data;
 using ECommerce.Infrastructure.Data.Seed;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -16,7 +17,32 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<ITokenService, TokenService>();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddFluentValidation(fv =>
+    {
+        fv.DisableDataAnnotationsValidation = true;
+        fv.ImplicitlyValidateChildProperties = true;
+    });
+
+builder.Services.Configure<Microsoft.AspNetCore.Mvc.ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = ctx =>
+    {
+        var errors = ctx.ModelState.Values
+            .SelectMany(v => v.Errors)
+            .Select(e => e.ErrorMessage)
+            .ToArray();
+
+        var result = new Microsoft.AspNetCore.Mvc.ObjectResult(new
+        {
+            statusCode = 400,
+            message = "Validation failed.",
+            errors
+        }) { StatusCode = 400 };
+
+        return result;
+    };
+});
 
 var jwt = builder.Configuration.GetSection("JwtSettings");
 builder.Services.AddAuthentication(options =>
