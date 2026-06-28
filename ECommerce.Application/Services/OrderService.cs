@@ -1,9 +1,9 @@
-using AutoMapper;
 using ECommerce.Application.DTOs.Common;
 using ECommerce.Application.DTOs.Order;
 using ECommerce.Application.Exceptions;
 using ECommerce.Application.Interfaces.Repositories;
 using ECommerce.Application.Interfaces.Services;
+using ECommerce.Application.Mappings;
 using ECommerce.Domain.Entities;
 using ECommerce.Domain.Enums;
 
@@ -12,9 +12,9 @@ namespace ECommerce.Application.Services;
 public class OrderService : IOrderService
 {
     private readonly IUnitOfWork _uow;
-    private readonly IMapper _mapper;
+    private readonly IECommerceMapper _mapper;
 
-    public OrderService(IUnitOfWork uow, IMapper mapper)
+    public OrderService(IUnitOfWork uow, IECommerceMapper mapper)
     {
         _uow = uow;
         _mapper = mapper;
@@ -44,17 +44,17 @@ public class OrderService : IOrderService
         {
             UserId = userId,
             OrderNumber = orderNumber,
-            ShippingAddress = _mapper.Map<ShippingAddress>(dto.ShippingAddress)
+            ShippingAddress = _mapper.ShippingAddressDtoToEntity(dto.ShippingAddress)
         };
 
         foreach (var item in cart.CartItems)
         {
-            var product = await _uow.Products.GetByIdAsync(item.ProductId)!;
+            var product = (await _uow.Products.GetByIdAsync(item.ProductId))!;
 
             order.OrderItems.Add(new OrderItem
             {
                 ProductId = item.ProductId,
-                ProductName = product!.Name,
+                ProductName = product.Name,
                 Quantity = item.Quantity,
                 UnitPrice = item.UnitPrice
             });
@@ -66,11 +66,10 @@ public class OrderService : IOrderService
         order.TotalAmount = order.OrderItems.Sum(i => i.UnitPrice * i.Quantity);
 
         await _uow.Orders.AddAsync(order);
-
         cart.CartItems.Clear();
         await _uow.SaveChangesAsync();
 
-        return _mapper.Map<OrderDto>(order);
+        return _mapper.OrderToDto(order);
     }
 
     public async Task<PagedResult<OrderDto>> GetUserOrdersAsync(string userId, int page, int pageSize)
@@ -78,7 +77,7 @@ public class OrderService : IOrderService
         var (items, total) = await _uow.Orders.GetByUserIdPagedAsync(userId, page, pageSize);
         return new PagedResult<OrderDto>
         {
-            Items = _mapper.Map<List<OrderDto>>(items),
+            Items = _mapper.OrdersToDto(items),
             TotalCount = total,
             Page = page,
             PageSize = pageSize
@@ -93,7 +92,7 @@ public class OrderService : IOrderService
         if (order.UserId != userId)
             throw new ForbiddenException("Access denied.");
 
-        return _mapper.Map<OrderDto>(order);
+        return _mapper.OrderToDto(order);
     }
 
     public async Task<OrderDto> CancelOrderAsync(string userId, Guid id)
@@ -112,7 +111,7 @@ public class OrderService : IOrderService
         _uow.Orders.Update(order);
         await _uow.SaveChangesAsync();
 
-        return _mapper.Map<OrderDto>(order);
+        return _mapper.OrderToDto(order);
     }
 
     public async Task<PagedResult<OrderDto>> GetAllOrdersAsync(int page, int pageSize)
@@ -120,7 +119,7 @@ public class OrderService : IOrderService
         var (items, total) = await _uow.Orders.GetAllPagedAsync(page, pageSize);
         return new PagedResult<OrderDto>
         {
-            Items = _mapper.Map<List<OrderDto>>(items),
+            Items = _mapper.OrdersToDto(items),
             TotalCount = total,
             Page = page,
             PageSize = pageSize
@@ -137,6 +136,6 @@ public class OrderService : IOrderService
         _uow.Orders.Update(order);
         await _uow.SaveChangesAsync();
 
-        return _mapper.Map<OrderDto>(order);
+        return _mapper.OrderToDto(order);
     }
 }

@@ -1,9 +1,9 @@
-using AutoMapper;
 using ECommerce.Application.DTOs.Common;
 using ECommerce.Application.DTOs.Product;
 using ECommerce.Application.Exceptions;
 using ECommerce.Application.Interfaces.Repositories;
 using ECommerce.Application.Interfaces.Services;
+using ECommerce.Application.Mappings;
 using ECommerce.Domain.Entities;
 
 namespace ECommerce.Application.Services;
@@ -11,9 +11,9 @@ namespace ECommerce.Application.Services;
 public class ProductService : IProductService
 {
     private readonly IUnitOfWork _uow;
-    private readonly IMapper _mapper;
+    private readonly IECommerceMapper _mapper;
 
-    public ProductService(IUnitOfWork uow, IMapper mapper)
+    public ProductService(IUnitOfWork uow, IECommerceMapper mapper)
     {
         _uow = uow;
         _mapper = mapper;
@@ -28,7 +28,7 @@ public class ProductService : IProductService
 
         return new PagedResult<ProductDto>
         {
-            Items = _mapper.Map<List<ProductDto>>(items),
+            Items = _mapper.ProductsToDto(items),
             TotalCount = total,
             Page = page,
             PageSize = pageSize
@@ -40,7 +40,7 @@ public class ProductService : IProductService
         var product = await _uow.Products.GetByIdWithCategoryAsync(id)
             ?? throw new NotFoundException($"Product {id} not found.");
 
-        return _mapper.Map<ProductDto>(product);
+        return _mapper.ProductToDto(product);
     }
 
     public async Task<ProductDto> CreateAsync(CreateProductDto dto)
@@ -48,12 +48,12 @@ public class ProductService : IProductService
         var category = await _uow.Categories.GetByIdAsync(dto.CategoryId)
             ?? throw new NotFoundException($"Category {dto.CategoryId} not found.");
 
-        var product = _mapper.Map<Product>(dto);
+        var product = _mapper.CreateDtoToProduct(dto);
         await _uow.Products.AddAsync(product);
         await _uow.SaveChangesAsync();
 
         product.Category = category;
-        return _mapper.Map<ProductDto>(product);
+        return _mapper.ProductToDto(product);
     }
 
     public async Task<ProductDto> UpdateAsync(Guid id, UpdateProductDto dto)
@@ -62,17 +62,15 @@ public class ProductService : IProductService
             ?? throw new NotFoundException($"Product {id} not found.");
 
         if (dto.CategoryId != product.CategoryId)
-        {
             _ = await _uow.Categories.GetByIdAsync(dto.CategoryId)
                 ?? throw new NotFoundException($"Category {dto.CategoryId} not found.");
-        }
 
-        _mapper.Map(dto, product);
+        _mapper.UpdateDtoToProduct(dto, product);
         product.UpdatedAt = DateTime.UtcNow;
         _uow.Products.Update(product);
         await _uow.SaveChangesAsync();
 
-        return _mapper.Map<ProductDto>(product);
+        return _mapper.ProductToDto(product);
     }
 
     public async Task DeleteAsync(Guid id)

@@ -1,4 +1,3 @@
-using AutoMapper;
 using ECommerce.Application.DTOs.Product;
 using ECommerce.Application.Exceptions;
 using ECommerce.Application.Interfaces.Repositories;
@@ -14,13 +13,11 @@ namespace ECommerce.Tests.Services;
 public class ProductServiceTests
 {
     private readonly Mock<IUnitOfWork> _uow = new();
-    private readonly IMapper _mapper;
+    private readonly IECommerceMapper _mapper = new ECommerceMapper();
     private readonly ProductService _sut;
 
     public ProductServiceTests()
     {
-        _mapper = new MapperConfiguration(cfg => cfg.AddProfile<MappingProfile>())
-            .CreateMapper();
         _sut = new ProductService(_uow.Object, _mapper);
     }
 

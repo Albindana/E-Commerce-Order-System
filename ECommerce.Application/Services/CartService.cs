@@ -1,8 +1,8 @@
-using AutoMapper;
 using ECommerce.Application.DTOs.Cart;
 using ECommerce.Application.Exceptions;
 using ECommerce.Application.Interfaces.Repositories;
 using ECommerce.Application.Interfaces.Services;
+using ECommerce.Application.Mappings;
 using ECommerce.Domain.Entities;
 
 namespace ECommerce.Application.Services;
@@ -10,9 +10,9 @@ namespace ECommerce.Application.Services;
 public class CartService : ICartService
 {
     private readonly IUnitOfWork _uow;
-    private readonly IMapper _mapper;
+    private readonly IECommerceMapper _mapper;
 
-    public CartService(IUnitOfWork uow, IMapper mapper)
+    public CartService(IUnitOfWork uow, IECommerceMapper mapper)
     {
         _uow = uow;
         _mapper = mapper;
@@ -24,7 +24,7 @@ public class CartService : ICartService
         if (cart == null)
             return new CartDto();
 
-        return _mapper.Map<CartDto>(cart);
+        return _mapper.CartToDto(cart);
     }
 
     public async Task<CartDto> AddItemAsync(string userId, AddCartItemDto dto)
@@ -60,7 +60,7 @@ public class CartService : ICartService
         }
 
         await _uow.SaveChangesAsync();
-        return _mapper.Map<CartDto>(cart);
+        return _mapper.CartToDto(cart);
     }
 
     public async Task<CartDto> UpdateItemAsync(string userId, Guid itemId, UpdateCartItemDto dto)
@@ -72,16 +72,12 @@ public class CartService : ICartService
             ?? throw new NotFoundException("Cart item not found.");
 
         if (dto.Quantity <= 0)
-        {
             cart.CartItems.Remove(item);
-        }
         else
-        {
             item.Quantity = dto.Quantity;
-        }
 
         await _uow.SaveChangesAsync();
-        return _mapper.Map<CartDto>(cart);
+        return _mapper.CartToDto(cart);
     }
 
     public async Task RemoveItemAsync(string userId, Guid itemId)
