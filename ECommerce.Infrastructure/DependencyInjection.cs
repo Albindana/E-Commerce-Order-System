@@ -1,6 +1,7 @@
 using ECommerce.Application.Interfaces.Repositories;
 using ECommerce.Domain.Entities;
 using ECommerce.Infrastructure.Data;
+using ECommerce.Infrastructure.Data.Seed;
 using ECommerce.Infrastructure.Repositories;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -29,6 +30,7 @@ public static class DependencyInjection
         .AddDefaultTokenProviders();
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<DbSeeder>();
 
         return services;
     }
