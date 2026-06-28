@@ -118,3 +118,5 @@ static async Task SeedDatabase(WebApplication app)
     await seeder.SeedAsync();
 }
 
+public partial class Program { }
+
